@@ -25,6 +25,10 @@ export interface AppSettings {
   accent: string;
   /** Gradient accents instead of flat ones. Marked beta: may look off in spots. */
   gradients: boolean;
+  /** Gradient end color ("r,g,b") — start is always the accent. */
+  gradientTo: string;
+  /** Gradient angle in degrees. */
+  gradientAngle: number;
   fontSize: number;
   tabSize: 2 | 4;
   wrap: boolean;
@@ -37,6 +41,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   version: 1,
   accent: ACCENT_DEFAULT,
   gradients: false,
+  gradientTo: '255,255,255',
+  gradientAngle: 135,
   fontSize: 13,
   tabSize: 2,
   wrap: false,
@@ -54,6 +60,14 @@ export function loadSettings(): AppSettings {
       version: 1,
       accent: typeof parsed.accent === 'string' && parseAccent(parsed.accent) ? parsed.accent : ACCENT_DEFAULT,
       gradients: parsed.gradients === true,
+      gradientTo:
+        typeof parsed.gradientTo === 'string' && parseAccent(parsed.gradientTo)
+          ? parsed.gradientTo
+          : DEFAULT_SETTINGS.gradientTo,
+      gradientAngle:
+        typeof parsed.gradientAngle === 'number'
+          ? Math.min(360, Math.max(0, Math.round(parsed.gradientAngle)))
+          : DEFAULT_SETTINGS.gradientAngle,
       fontSize:
         typeof parsed.fontSize === 'number' ? Math.min(18, Math.max(11, Math.round(parsed.fontSize))) : DEFAULT_SETTINGS.fontSize,
       tabSize: parsed.tabSize === 4 ? 4 : 2,
@@ -97,6 +111,11 @@ export function hexToAccent(hex: string): string | null {
   return `${(n >> 16) & 255},${(n >> 8) & 255},${n & 255}`;
 }
 
+/** CSS for the accent gradient: accent → end color at the given angle. */
+export function gradientCss(from: Rgb, to: Rgb, angle: number): string {
+  return `linear-gradient(${angle}deg, rgb(${from.join(',')}), rgb(${to.join(',')}))`;
+}
+
 /** Point every accent-derived CSS variable at the new color. */
 export function applyAccentToDom(rgb: Rgb): void {
   const [r, g, b] = rgb;
@@ -116,6 +135,9 @@ export function applyGradientsToDom(on: boolean): void {
 }
 
 export function applySettingsToDom(s: AppSettings): void {
-  applyAccentToDom(parseAccent(s.accent) ?? parseAccent(ACCENT_DEFAULT) ?? [200, 255, 0]);
+  const accent = parseAccent(s.accent) ?? parseAccent(ACCENT_DEFAULT) ?? [200, 255, 0];
+  const to = parseAccent(s.gradientTo) ?? [255, 255, 255];
+  applyAccentToDom(accent);
+  document.documentElement.style.setProperty('--accent-grad', gradientCss(accent, to, s.gradientAngle));
   applyGradientsToDom(s.gradients);
 }

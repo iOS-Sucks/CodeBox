@@ -28,15 +28,12 @@ import { starterProject } from './starter.ts';
 import { renderTree, showCreateRow } from './tree.ts';
 import { classifyName, downloadBlob, exportZip, importZip, MAX_FILE_BYTES } from './zip.ts';
 import {
-  ACCENT_DEFAULT,
   ACCENT_PRESETS,
   DEFAULT_SETTINGS,
   SETTINGS_KEY,
-  accentToHex,
   applySettingsToDom,
   hexToAccent,
   loadSettings,
-  parseAccent,
   saveSettings,
 } from './settings.ts';
 import type { CodeFile, Project } from './types.ts';
@@ -686,6 +683,10 @@ function main(): void {
   const customColor = el<HTMLInputElement>('accent-custom');
   const accentHex = el('accent-hex');
   const gradientsBox = el<HTMLInputElement>('set-gradients');
+  const gradientToPicker = el<HTMLInputElement>('gradient-to');
+  const gradientHex = el('gradient-hex');
+  const gradientAngle = el<HTMLInputElement>('gradient-angle');
+  const gradientAngleVal = el('gradient-angle-val');
   const fontSizeRange = el<HTMLInputElement>('set-fontsize');
   const fontSizeVal = el('fontsize-val');
   const tabSizeSelect = el<HTMLSelectElement>('set-tabsize');
@@ -722,10 +723,11 @@ function main(): void {
       const node = sw as HTMLElement;
       node.setAttribute('aria-checked', node.dataset.rgb === settings.accent ? 'true' : 'false');
     }
-    const rgb = parseAccent(settings.accent) ?? parseAccent(ACCENT_DEFAULT) ?? [200, 255, 0];
-    customColor.value = accentToHex(rgb);
     accentHex.textContent = `rgb(${settings.accent})`;
     gradientsBox.checked = settings.gradients;
+    gradientHex.textContent = `rgb(${settings.gradientTo})`;
+    gradientAngle.value = String(settings.gradientAngle);
+    gradientAngleVal.textContent = `${settings.gradientAngle}°`;
     fontSizeRange.value = String(settings.fontSize);
     fontSizeVal.textContent = String(settings.fontSize);
     tabSizeSelect.value = String(settings.tabSize);
@@ -746,6 +748,17 @@ function main(): void {
   });
   gradientsBox.addEventListener('change', () => {
     settings.gradients = gradientsBox.checked;
+    commitSettings();
+  });
+  gradientToPicker.addEventListener('input', () => {
+    const rgb = hexToAccent(gradientToPicker.value);
+    if (rgb) {
+      settings.gradientTo = rgb;
+      commitSettings();
+    }
+  });
+  gradientAngle.addEventListener('input', () => {
+    settings.gradientAngle = Number(gradientAngle.value);
     commitSettings();
   });
   fontSizeRange.addEventListener('input', () => {

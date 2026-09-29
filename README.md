@@ -25,7 +25,8 @@ via GitHub Pages.
 - **Squary B/W design** — sharp corners, black & white, `rgb(200, 255, 0)` accent,
   subtle motion (disabled under `prefers-reduced-motion`).
 - **Settings window** — restyle the accent with 9 presets or a custom color
-  picker, try gradient accents (beta), tune the editor (font size, tab width,
+  picker, design the beta gradient in a mini gradient editor (end color, angle,
+  live preview), tune the editor (font size, tab width,
   wrap, line numbers), control live preview and console behavior, and manage
   local data. Everything saves to `localStorage` automatically.
 

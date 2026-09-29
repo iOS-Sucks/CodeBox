@@ -128,12 +128,23 @@
           <div id="accent-grid" role="radiogroup" aria-label="Accent presets"></div>
           <label class="set-row" for="accent-custom">
             Custom
-            <input type="color" id="accent-custom" />
+            <input type="color" id="accent-custom" value="#000000" />
             <code id="accent-hex"></code>
           </label>
           <label class="set-row" for="set-gradients">
             <input type="checkbox" id="set-gradients" />
             Gradient accents <em class="beta">beta</em>
+          </label>
+          <div id="gradient-preview" aria-hidden="true"></div>
+          <label class="set-row" for="gradient-to">
+            Gradient end
+            <input type="color" id="gradient-to" value="#000000" />
+            <code id="gradient-hex"></code>
+          </label>
+          <label class="set-row" for="gradient-angle">
+            Angle
+            <input type="range" id="gradient-angle" min="0" max="360" step="15" />
+            <span class="val" id="gradient-angle-val"></span>
           </label>
         </section>
         <section aria-label="Editor">

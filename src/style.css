@@ -17,6 +17,7 @@
   --volt-focus: rgba(200, 255, 0, 0.55);
   --volt-match: rgba(200, 255, 0, 0.3);
   --volt-hover: rgba(200, 255, 0, 0.18);
+  --accent-grad: linear-gradient(135deg, rgb(200, 255, 0), rgb(255, 255, 255));
   --err: #ff5d5d;
   --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --mono: ui-monospace, "Cascadia Mono", "JetBrains Mono", Consolas, monospace;
@@ -1033,14 +1034,21 @@ dialog::backdrop {
 /* ---------- gradient accents (beta) ---------- */
 
 body.grad .logo {
-  background: linear-gradient(135deg, var(--volt), color-mix(in srgb, var(--volt) 45%, #fff));
+  background: var(--accent-grad);
 }
 
 body.grad button.accent {
-  background: linear-gradient(135deg, var(--volt), color-mix(in srgb, var(--volt) 55%, #fff));
+  background: var(--accent-grad);
 }
 
 body.grad .boot-logo span:nth-child(2),
 body.grad .boot-bar span {
-  background: linear-gradient(135deg, var(--volt), color-mix(in srgb, var(--volt) 45%, #fff));
+  background: var(--accent-grad);
+}
+
+#gradient-preview {
+  height: 30px;
+  border: 1px solid var(--line);
+  background: var(--accent-grad);
+  margin: 6px 0 2px;
 }
