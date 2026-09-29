@@ -7,7 +7,30 @@ export interface ConsoleEntry {
   kind: ConsoleKind;
   text: string;
   where?: string;
+  /** Project file + line the error maps to, when it comes from inlined code. */
+  target?: ErrorTarget;
   time: number;
+}
+
+/** One inlined file's content lines inside the finished preview document. */
+export interface LineSegment {
+  /** Project path of the inlined file. */
+  file: string;
+  /** 1-based first content line in the final document. */
+  start: number;
+  /** 1-based last content line in the final document. */
+  end: number;
+}
+
+export interface BuiltPreview {
+  html: string;
+  lineMap: LineSegment[];
+}
+
+/** Project file + 1-based line a preview error location points at. */
+export interface ErrorTarget {
+  file: string;
+  line: number;
 }
 
 export const PREVIEW_TAG = '__codebox';
@@ -110,8 +133,9 @@ function escapeHtml(s: string): string {
 /**
  * Bundle the project into one standalone document: local stylesheets and
  * scripts are inlined so the sandboxed iframe needs no subresource origin.
+ * Also returns a map of inlined file lines for error lookup.
  */
-export function buildStandaloneHtml(project: Project, entryPath: string): string {
+export function buildStandaloneHtml(project: Project, entryPath: string): BuiltPreview {
   const entry = project.files.find((f) => f.path === entryPath);
   const source = entry?.content ?? '';
   const byPath = new Map(realFiles(project).map((f) => [f.path, f.content]));
@@ -143,13 +167,49 @@ export function buildStandaloneHtml(project: Project, entryPath: string): string
   });
 
   const withBase = /<base\b/i.test(withImg) ? withImg : withImg.replace(/<head(\s[^>]*)?>/i, (m) => `${m}\n<base target="_blank">`);
-  return withBase.replace(/<head(\s[^>]*)?>/i, (m) => `${m}\n${HOOK_SCRIPT}`);
+  const html = withBase.replace(/<head(\s[^>]*)?>/i, (m) => `${m}\n${HOOK_SCRIPT}`);
+  return { html, lineMap: buildLineMap(html, byPath) };
 }
 
-export function renderStandaloneHtml(project: Project): { entry: string | null; html: string } {
+function unescapeAttr(s: string): string {
+  return s.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&amp;/g, '&');
+}
+
+/** Locate every inlined file's content lines in the finished document. */
+function buildLineMap(html: string, byPath: Map<string, string>): LineSegment[] {
+  const segments: LineSegment[] = [];
+  const marker = /data-codebox-src="([^"]*)"/g;
+  let m: RegExpExecArray | null;
+  while ((m = marker.exec(html)) !== null) {
+    const file = unescapeAttr(m[1]);
+    const content = byPath.get(file);
+    if (content === undefined) continue;
+    const afterTag = html.indexOf('>', m.index);
+    if (afterTag === -1) continue;
+    const newline = html.indexOf('\n', afterTag);
+    if (newline === -1) continue;
+    const start = html.slice(0, newline + 1).split('\n').length;
+    segments.push({ file, start, end: start + content.split('\n').length - 1 });
+  }
+  return segments.sort((a, b) => a.start - b.start);
+}
+
+/** Map a preview location like "about:srcdoc:96" back to project file + line. */
+export function locateError(where: string | undefined, lineMap: LineSegment[]): ErrorTarget | null {
+  if (!where) return null;
+  const m = where.match(/:(\d+)\s*$/);
+  if (!m) return null;
+  const line = Number(m[1]);
+  const seg = lineMap.find((s) => line >= s.start && line <= s.end);
+  if (!seg) return null;
+  return { file: seg.file, line: line - seg.start + 1 };
+}
+
+export function renderStandaloneHtml(project: Project): { entry: string | null; html: string; lineMap: LineSegment[] } {
   const entry = entryFor(project, project.activePath);
-  if (!entry) return { entry: null, html: EMPTY_SHELL(project.name) };
-  return { entry, html: buildStandaloneHtml(project, entry) };
+  if (!entry) return { entry: null, html: EMPTY_SHELL(project.name), lineMap: [] };
+  const built = buildStandaloneHtml(project, entry);
+  return { entry, html: built.html, lineMap: built.lineMap };
 }
 
 export function renderPreview(iframe: HTMLIFrameElement, html: string): void {

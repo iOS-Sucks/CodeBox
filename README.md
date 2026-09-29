@@ -3,18 +3,22 @@
 Edit HTML, CSS and JS in your browser with a live preview. No account, no cookies,
 no backend — projects stay in your browser's `localStorage`.
 
-Live site: `https://<user>.github.io/CodeBox/` (deployed from `main` via GitHub Pages).
+**[Try CodeBox live](https://ios-sucks.github.io/CodeBox/)** — deployed from `main`
+via GitHub Pages.
 
 ## Features
 
 - **File system per project** — create/rename/delete files and folders, or drag &
   drop files and whole folders from your OS straight into the app.
-- **Zip round-trip** — import a `.zip` of a site to edit it, export any project
-  back to `.zip`.
+- **Import / export menus** — import files or a site `.zip`; export the project as
+  `.zip` or the preview as a single standalone `.html` file.
 - **Highlighted editor** — CodeMirror 6 with HTML/CSS/JS/JSON grammars, volt-on-black
-  theme, search, autocompletion and bracket matching.
+  theme, auto-closing tags and brackets, and scope-aware completions for tags,
+  CSS properties, JS globals and your own variables. `Tab` accepts a suggestion,
+  `Shift-Tab` unindents.
 - **Error highlighting** — JS syntax errors get gutter markers plus a message bar;
-  runtime errors and `console.*` output from the preview land in the Console panel.
+  runtime errors and `console.*` output from the preview land in the Console panel,
+  mapped back to the real file and line — click one to jump straight to it.
 - **Live preview** — local `<link>`/`<script>`/`<img>` references are inlined into
   one sandboxed document (`sandbox="allow-scripts"`), rebuilt ~400ms after you type.
 - **Fullscreen + new tab** — present a site fullscreen or pop it out into its own tab.

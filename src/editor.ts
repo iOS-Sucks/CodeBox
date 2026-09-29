@@ -1,5 +1,5 @@
-import { autocompletion, closeBrackets, closeBracketsKeymap, completionKeymap } from '@codemirror/autocomplete';
-import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
+import { acceptCompletion, autocompletion, closeBrackets, closeBracketsKeymap, completionKeymap } from '@codemirror/autocomplete';
+import { defaultKeymap, history, historyKeymap, indentLess, indentMore } from '@codemirror/commands';
 import { syntaxHighlighting, HighlightStyle, bracketMatching, indentOnInput } from '@codemirror/language';
 import { css } from '@codemirror/lang-css';
 import { html } from '@codemirror/lang-html';
@@ -8,13 +8,15 @@ import { json } from '@codemirror/lang-json';
 import { linter, lintGutter, type Diagnostic } from '@codemirror/lint';
 import { highlightSelectionMatches, searchKeymap } from '@codemirror/search';
 import { Compartment, EditorState } from '@codemirror/state';
-import { EditorView, keymap, lineNumbers, highlightActiveLine } from '@codemirror/view';
+import { EditorView, Decoration, keymap, lineNumbers, highlightActiveLine } from '@codemirror/view';
 import { tags } from '@lezer/highlight';
 import { parse } from 'acorn';
 
 export interface EditorHandle {
   openFile(path: string, content: string): void;
   currentPath(): string | null;
+  /** Box + scroll to a 1-based line (used when jumping from a console error). */
+  highlightLine(line: number): void;
   destroy(): void;
 }
 
@@ -62,7 +64,7 @@ function isJsPath(path: string): boolean {
 
 function languageFor(path: string) {
   const ext = path.split('.').pop()?.toLowerCase() ?? '';
-  if (ext === 'html' || ext === 'htm') return html();
+  if (ext === 'html' || ext === 'htm') return html({ autoCloseTags: true });
   if (ext === 'css') return css();
   if (ext === 'js' || ext === 'mjs' || ext === 'cjs') return javascript();
   if (ext === 'json') return json();
@@ -113,8 +115,23 @@ function jsLinter(view: EditorView): Diagnostic[] {
 export function createEditor(el: HTMLElement, opts: EditorOptions): EditorHandle {
   const language = new Compartment();
   const lint = new Compartment();
+  const mark = new Compartment();
   let path: string | null = null;
   let lastDiagKey = '';
+  let marked = false;
+
+  const clearMark = () => {
+    if (!marked) return;
+    marked = false;
+    // Deferred: never dispatch from inside an update listener.
+    queueMicrotask(() => {
+      try {
+        view.dispatch({ effects: mark.reconfigure(EditorView.decorations.of(Decoration.none)) });
+      } catch {
+        // View already destroyed.
+      }
+    });
+  };
 
   const checkDiagnostics = (view: EditorView) => {
     if (!path || !isJsPath(path)) return;
@@ -137,16 +154,27 @@ export function createEditor(el: HTMLElement, opts: EditorOptions): EditorHandle
         indentOnInput(),
         bracketMatching(),
         closeBrackets(),
-        autocompletion(),
+        autocompletion({ activateOnTyping: true }),
         highlightSelectionMatches(),
         syntaxHighlighting(voltHighlight),
         voltTheme,
         lintGutter(),
         language.of([]),
         lint.of([]),
-        keymap.of([...closeBracketsKeymap, ...defaultKeymap, ...searchKeymap, ...historyKeymap, ...completionKeymap]),
+        mark.of(EditorView.decorations.of(Decoration.none)),
+        keymap.of([
+          // Tab accepts the selected completion, otherwise indents — like VS Code.
+          { key: 'Tab', run: (v) => acceptCompletion(v) || indentMore(v) },
+          { key: 'Shift-Tab', run: indentLess },
+          ...closeBracketsKeymap,
+          ...defaultKeymap,
+          ...searchKeymap,
+          ...historyKeymap,
+          ...completionKeymap,
+        ]),
         EditorView.updateListener.of((update) => {
           if (update.docChanged && path) {
+            clearMark();
             opts.onChange(path, update.state.doc.toString());
             checkDiagnostics(update.view);
           }
@@ -160,6 +188,7 @@ export function createEditor(el: HTMLElement, opts: EditorOptions): EditorHandle
     openFile(nextPath: string, content: string) {
       path = nextPath;
       lastDiagKey = '';
+      marked = false;
       view.dispatch({
         changes: { from: 0, to: view.state.doc.length, insert: content },
         effects: [
@@ -167,10 +196,26 @@ export function createEditor(el: HTMLElement, opts: EditorOptions): EditorHandle
           // Only plain .js files get the syntax linter: inside .html the
           // same check would flag markup as broken JavaScript.
           lint.reconfigure(isJsPath(nextPath) ? linter(jsLinter, { delay: 400 }) : []),
+          mark.reconfigure(EditorView.decorations.of(Decoration.none)),
         ],
       });
       if (isJsPath(nextPath)) checkDiagnostics(view);
       else opts.onDiagnostics(nextPath, []);
+    },
+    highlightLine(lineNum: number) {
+      try {
+        const line = view.state.doc.line(Math.min(Math.max(lineNum, 1), view.state.doc.lines));
+        marked = true;
+        view.dispatch({
+          selection: { anchor: line.from },
+          scrollIntoView: true,
+          effects: mark.reconfigure(
+            EditorView.decorations.of(Decoration.set([Decoration.line({ class: 'cm-jump-line' }).range(line.from)])),
+          ),
+        });
+      } catch {
+        // Line vanished under edits — nothing to box.
+      }
     },
     destroy() {
       path = null;

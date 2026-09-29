@@ -37,9 +37,24 @@
         <button id="btn-project-delete" type="button" title="Delete project">Delete</button>
       </div>
       <nav class="actions" aria-label="Project actions">
-        <button id="btn-import-files" type="button">Import files</button>
-        <button id="btn-import-zip" type="button">Import .zip</button>
-        <button id="btn-export-zip" type="button">Export .zip</button>
+        <div class="menu" data-menu>
+          <button id="btn-import" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="menu-import">
+            Import ▾
+          </button>
+          <div class="menu-panel" id="menu-import" role="menu" aria-label="Import" hidden>
+            <button id="btn-import-files" type="button" role="menuitem">Files…</button>
+            <button id="btn-import-zip" type="button" role="menuitem">Site .zip…</button>
+          </div>
+        </div>
+        <div class="menu" data-menu>
+          <button id="btn-export" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="menu-export">
+            Export ▾
+          </button>
+          <div class="menu-panel" id="menu-export" role="menu" aria-label="Export" hidden>
+            <button id="btn-export-zip" type="button" role="menuitem">Project .zip</button>
+            <button id="btn-export-html" type="button" role="menuitem">Single .html file</button>
+          </div>
+        </div>
         <button id="btn-open-tab" type="button">Open in tab</button>
         <button id="btn-fullscreen" type="button" class="accent">Fullscreen</button>
       </nav>

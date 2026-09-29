@@ -751,3 +751,106 @@ select {
     transition-duration: 1ms !important;
   }
 }
+
+/* ---------- dropdown menus ---------- */
+
+.menu {
+  position: relative;
+}
+
+.menu-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 50;
+  min-width: 190px;
+  background: var(--panel-2);
+  border: 1px solid var(--volt);
+  display: flex;
+  flex-direction: column;
+  padding: 4px;
+  animation: drop-in var(--speed) ease;
+}
+
+.menu-panel[hidden] {
+  display: none;
+}
+
+.menu-panel [role="menuitem"] {
+  background: none;
+  border: 1px solid transparent;
+  text-align: left;
+  width: 100%;
+  padding: 8px 10px;
+  white-space: nowrap;
+}
+
+.menu-panel [role="menuitem"]:hover {
+  background: var(--volt-dim);
+  border-color: var(--volt);
+}
+
+/* ---------- scrollbars (webkit + firefox) ---------- */
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #333 #0a0a0a;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  background: #0a0a0a;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: #2e2e2e;
+  border: 2px solid #0a0a0a;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--volt);
+}
+
+*::-webkit-scrollbar-corner {
+  background: #0a0a0a;
+}
+
+/* ---------- active file chip ---------- */
+
+#active-path.chip {
+  color: var(--ink);
+  text-transform: none;
+  letter-spacing: 0.04em;
+  border: 1px solid var(--volt);
+  background: var(--volt-dim);
+  padding: 3px 10px;
+}
+
+/* ---------- jumped-to error line ---------- */
+
+#editor .cm-jump-line {
+  background: rgba(200, 255, 0, 0.09);
+  outline: 1px solid rgb(200, 255, 0);
+}
+
+/* ---------- clickable console locations ---------- */
+
+#console-list .where-btn {
+  background: none;
+  border: 1px solid var(--line);
+  color: var(--volt);
+  font: inherit;
+  padding: 0 6px;
+  margin-left: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+#console-list .where-btn:hover {
+  border-color: var(--volt);
+  background: var(--volt-dim);
+}

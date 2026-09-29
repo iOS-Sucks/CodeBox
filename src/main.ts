@@ -3,10 +3,13 @@ import { createEditor, type EditorHandle } from './editor.ts';
 import {
   entryFromMessage,
   isPreviewMessage,
+  locateError,
   openInTab,
   renderPreview,
   renderStandaloneHtml,
   type ConsoleEntry,
+  type ErrorTarget,
+  type LineSegment,
 } from './preview.ts';
 import {
   createProject,
@@ -74,6 +77,7 @@ function main(): void {
   let saveTimer = 0;
   let previewTimer = 0;
   let lastHtml = '';
+  let lastLineMap: LineSegment[] = [];
   let entries: ConsoleEntry[] = [];
 
   const project = (): Project | null => getProject(state, state.activeProjectId);
@@ -146,12 +150,21 @@ function main(): void {
   }
 
   function renderConsole(): void {
+    const stick = consoleList.scrollHeight - consoleList.scrollTop - consoleList.clientHeight < 40;
     consoleList.replaceChildren();
     for (const entry of entries) {
       const li = document.createElement('li');
       li.className = entry.kind;
       li.textContent = entry.text;
-      if (entry.where) {
+      if (entry.target) {
+        const jump = document.createElement('button');
+        jump.type = 'button';
+        jump.className = 'where-btn';
+        jump.textContent = `${entry.target.file}:${entry.target.line}`;
+        jump.title = `Open ${entry.target.file} at line ${entry.target.line}`;
+        jump.addEventListener('click', () => jumpToError(entry.target as ErrorTarget));
+        li.appendChild(jump);
+      } else if (entry.where) {
         const where = document.createElement('span');
         where.className = 'where';
         where.textContent = ` ${entry.where}`;
@@ -159,8 +172,23 @@ function main(): void {
       }
       consoleList.appendChild(li);
     }
+    if (stick) consoleList.scrollTop = consoleList.scrollHeight;
     const errors = entries.filter((e) => e.kind === 'error').length;
     consoleCount.textContent = entries.length === 0 ? '' : `(${entries.length}${errors > 0 ? `, ${errors} error${errors === 1 ? '' : 's'}` : ''})`;
+  }
+
+  /** Open the file an error came from and box the offending line. */
+  function jumpToError(target: ErrorTarget): void {
+    const p = project();
+    const file = p ? getFile(p, target.file) : null;
+    if (!p || !file || file.content.startsWith('data:')) return;
+    p.activePath = file.path;
+    p.updatedAt = Date.now();
+    scheduleSave();
+    openActiveFile();
+    rebuildPreview();
+    renderTreeEl();
+    if (editor.currentPath() === file.path) editor.highlightLine(target.line);
   }
 
   /* ---------- rendering ---------- */
@@ -231,6 +259,7 @@ function main(): void {
   function openActiveFile(): void {
     const p = project();
     const file = p ? getFile(p, p.activePath) : null;
+    activePathEl.classList.toggle('chip', file !== null);
     if (!p || !file) {
       activePathEl.textContent = '—';
       showEditorEmpty('No file selected.');
@@ -268,8 +297,9 @@ function main(): void {
     previewTimer = 0;
     const p = project();
     if (!p) return;
-    const { entry, html } = renderStandaloneHtml(p);
+    const { entry, html, lineMap } = renderStandaloneHtml(p);
     lastHtml = html;
+    lastLineMap = lineMap;
     entryLabel.textContent = entry ? `entry: ${entry}` : 'no HTML file';
     renderPreview(iframe, html);
   }
@@ -529,6 +559,40 @@ function main(): void {
     if (p) showCreateRow(treeEl, 'folder/', { onSelect: () => {}, onDelete: () => {}, onRename: () => {}, onCreate: (v) => createPath(p, v, true) });
   });
 
+  /* ---------- dropdown menus ---------- */
+
+  const menuRoots = [...document.querySelectorAll<HTMLElement>('[data-menu]')];
+  function closeMenus(): void {
+    for (const root of menuRoots) {
+      root.querySelector('.menu-panel')?.setAttribute('hidden', '');
+      root.querySelector('[aria-haspopup="menu"]')?.setAttribute('aria-expanded', 'false');
+    }
+  }
+  for (const root of menuRoots) {
+    const btn = root.querySelector<HTMLButtonElement>('[aria-haspopup="menu"]');
+    const panel = root.querySelector<HTMLElement>('.menu-panel');
+    if (!btn || !panel) continue;
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const open = !panel.hasAttribute('hidden');
+      closeMenus();
+      if (!open) {
+        panel.removeAttribute('hidden');
+        btn.setAttribute('aria-expanded', 'true');
+        panel.querySelector<HTMLButtonElement>('[role="menuitem"]')?.focus();
+      }
+    });
+    panel.addEventListener('click', (e) => {
+      if ((e.target as HTMLElement).closest('[role="menuitem"]')) closeMenus();
+    });
+  }
+  document.addEventListener('click', (e) => {
+    if (!(e.target as HTMLElement).closest('[data-menu]')) closeMenus();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeMenus();
+  });
+
   el('btn-import-files').addEventListener('click', () => fileInput.click());
   el('btn-import-zip').addEventListener('click', () => zipInput.click());
 
@@ -548,6 +612,12 @@ function main(): void {
     const p = project();
     if (!p) return;
     void exportZip(p).then((blob) => downloadBlob(blob, `${p.name}.zip`));
+  });
+
+  el('btn-export-html').addEventListener('click', () => {
+    const p = project();
+    if (!p || !lastHtml) return;
+    downloadBlob(new Blob([lastHtml], { type: 'text/html' }), `${p.name}.html`);
   });
 
   el('btn-open-tab').addEventListener('click', () => {
@@ -576,7 +646,9 @@ function main(): void {
   window.addEventListener('message', (e) => {
     if (!isPreviewMessage(e, iframe)) return;
     const entry = entryFromMessage(e);
-    if (entry) pushConsole(entry);
+    if (!entry) return;
+    entry.target = locateError(entry.where, lastLineMap) ?? undefined;
+    pushConsole(entry);
   });
 
   document.addEventListener('keydown', (e) => {
