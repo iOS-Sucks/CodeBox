@@ -22,10 +22,23 @@ import {
   storageBytes,
   upsertFile,
   KEEP_NAME,
+  STORAGE_KEY,
 } from './store.ts';
 import { starterProject } from './starter.ts';
 import { renderTree, showCreateRow } from './tree.ts';
 import { classifyName, downloadBlob, exportZip, importZip, MAX_FILE_BYTES } from './zip.ts';
+import {
+  ACCENT_DEFAULT,
+  ACCENT_PRESETS,
+  DEFAULT_SETTINGS,
+  SETTINGS_KEY,
+  accentToHex,
+  applySettingsToDom,
+  hexToAccent,
+  loadSettings,
+  parseAccent,
+  saveSettings,
+} from './settings.ts';
 import type { CodeFile, Project } from './types.ts';
 
 function el<T extends HTMLElement>(id: string): T {
@@ -57,6 +70,9 @@ function main(): void {
     persist(state);
   }
 
+  let settings = loadSettings();
+  applySettingsToDom(settings);
+
   const projectSelect = el<HTMLSelectElement>('project-select');
   const treeEl = el('tree');
   const editorHost = el('editor');
@@ -83,7 +99,7 @@ function main(): void {
   const project = (): Project | null => getProject(state, state.activeProjectId);
 
   const editor: EditorHandle = createEditor(editorHost, {
-    onChange: (path, content) => {
+    settings,    onChange: (path, content) => {
       const p = project();
       const file = p ? getFile(p, path) : null;
       if (!p || !file || file.content === content) return;
@@ -146,7 +162,7 @@ function main(): void {
     entries.push(entry);
     if (entries.length > MAX_CONSOLE_ENTRIES) entries = entries.slice(-MAX_CONSOLE_ENTRIES);
     renderConsole();
-    if (entry.kind === 'error') consoleBox.open = true;
+    if (entry.kind === 'error' && settings.consoleAutoOpen) consoleBox.open = true;
   }
 
   function renderConsole(): void {
@@ -307,6 +323,8 @@ function main(): void {
 
   function schedulePreview(): void {
     window.clearTimeout(previewTimer);
+    previewTimer = 0;
+    if (!settings.autoPreview) return;
     previewTimer = window.setTimeout(rebuildPreview, PREVIEW_DEBOUNCE_MS);
   }
 
@@ -656,8 +674,137 @@ function main(): void {
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
       e.preventDefault();
       saveNow();
+      rebuildPreview();
       saveDot.textContent = 'saved ✓';
     }
+  });
+
+  /* ---------- settings ---------- */
+
+  const dialog = el<HTMLDialogElement>('settings-dialog');
+  const accentGrid = el('accent-grid');
+  const customColor = el<HTMLInputElement>('accent-custom');
+  const accentHex = el('accent-hex');
+  const gradientsBox = el<HTMLInputElement>('set-gradients');
+  const fontSizeRange = el<HTMLInputElement>('set-fontsize');
+  const fontSizeVal = el('fontsize-val');
+  const tabSizeSelect = el<HTMLSelectElement>('set-tabsize');
+  const wrapBox = el<HTMLInputElement>('set-wrap');
+  const lineNumbersBox = el<HTMLInputElement>('set-linenumbers');
+  const autoPreviewBox = el<HTMLInputElement>('set-autopreview');
+  const consoleOpenBox = el<HTMLInputElement>('set-consoleopen');
+
+  for (const preset of ACCENT_PRESETS) {
+    const swatch = document.createElement('button');
+    swatch.type = 'button';
+    swatch.className = 'swatch';
+    swatch.dataset.rgb = preset.rgb;
+    swatch.style.background = `rgb(${preset.rgb})`;
+    swatch.setAttribute('role', 'radio');
+    swatch.title = preset.name;
+    swatch.setAttribute('aria-label', `${preset.name} accent`);
+    swatch.addEventListener('click', () => {
+      settings.accent = preset.rgb;
+      commitSettings();
+    });
+    accentGrid.appendChild(swatch);
+  }
+
+  function commitSettings(): void {
+    saveSettings(settings);
+    applySettingsToDom(settings);
+    editor.updateSettings(settings);
+    syncSettingsUI();
+  }
+
+  function syncSettingsUI(): void {
+    for (const sw of accentGrid.querySelectorAll('.swatch')) {
+      const node = sw as HTMLElement;
+      node.setAttribute('aria-checked', node.dataset.rgb === settings.accent ? 'true' : 'false');
+    }
+    const rgb = parseAccent(settings.accent) ?? parseAccent(ACCENT_DEFAULT) ?? [200, 255, 0];
+    customColor.value = accentToHex(rgb);
+    accentHex.textContent = `rgb(${settings.accent})`;
+    gradientsBox.checked = settings.gradients;
+    fontSizeRange.value = String(settings.fontSize);
+    fontSizeVal.textContent = String(settings.fontSize);
+    tabSizeSelect.value = String(settings.tabSize);
+    wrapBox.checked = settings.wrap;
+    lineNumbersBox.checked = settings.lineNumbers;
+    autoPreviewBox.checked = settings.autoPreview;
+    consoleOpenBox.checked = settings.consoleAutoOpen;
+    el('settings-usage').textContent =
+      `${(storageBytes(state) / 1024).toFixed(1)} KB stored in this browser · settings save automatically`;
+  }
+
+  customColor.addEventListener('input', () => {
+    const rgb = hexToAccent(customColor.value);
+    if (rgb) {
+      settings.accent = rgb;
+      commitSettings();
+    }
+  });
+  gradientsBox.addEventListener('change', () => {
+    settings.gradients = gradientsBox.checked;
+    commitSettings();
+  });
+  fontSizeRange.addEventListener('input', () => {
+    settings.fontSize = Number(fontSizeRange.value);
+    commitSettings();
+  });
+  tabSizeSelect.addEventListener('change', () => {
+    settings.tabSize = tabSizeSelect.value === '4' ? 4 : 2;
+    commitSettings();
+  });
+  wrapBox.addEventListener('change', () => {
+    settings.wrap = wrapBox.checked;
+    commitSettings();
+  });
+  lineNumbersBox.addEventListener('change', () => {
+    settings.lineNumbers = lineNumbersBox.checked;
+    commitSettings();
+  });
+  autoPreviewBox.addEventListener('change', () => {
+    settings.autoPreview = autoPreviewBox.checked;
+    commitSettings();
+    rebuildPreview();
+  });
+  consoleOpenBox.addEventListener('change', () => {
+    settings.consoleAutoOpen = consoleOpenBox.checked;
+    commitSettings();
+  });
+
+  el('btn-settings-reset').addEventListener('click', () => {
+    settings = { ...DEFAULT_SETTINGS };
+    commitSettings();
+  });
+
+  const eraseBtn = el<HTMLButtonElement>('btn-data-erase');
+  eraseBtn.addEventListener('click', () => {
+    if (!eraseBtn.classList.contains('danger-armed')) {
+      eraseBtn.classList.add('danger-armed');
+      eraseBtn.textContent = 'Click again to erase';
+      window.setTimeout(() => {
+        eraseBtn.classList.remove('danger-armed');
+        eraseBtn.textContent = 'Erase all local data';
+      }, 2500);
+      return;
+    }
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(SETTINGS_KEY);
+    } finally {
+      location.reload();
+    }
+  });
+
+  el('btn-settings').addEventListener('click', () => {
+    syncSettingsUI();
+    dialog.showModal();
+  });
+  el('btn-settings-close').addEventListener('click', () => dialog.close());
+  dialog.addEventListener('click', (e) => {
+    if (e.target === dialog) dialog.close();
   });
 
   /* ---------- drag & drop ---------- */
@@ -693,8 +840,12 @@ function main(): void {
 
   renderAll();
   const boot = el('boot');
-  boot.classList.add('done');
-  window.setTimeout(() => boot.remove(), 400);
+  const hideBoot = () => {
+    boot.classList.add('done');
+    window.setTimeout(() => boot.remove(), 400);
+  };
+  boot.addEventListener('click', hideBoot, { once: true });
+  window.setTimeout(hideBoot, 1100);
 }
 
 main();

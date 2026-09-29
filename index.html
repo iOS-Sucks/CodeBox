@@ -13,8 +13,9 @@
   </head>
   <body>
     <div id="boot" role="status" aria-label="Loading CodeBox">
-      <div class="boot-box" aria-hidden="true"><span></span><span></span><span></span></div>
+      <div class="boot-logo" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
       <p>CODEBOX</p>
+      <div class="boot-bar" aria-hidden="true"><span></span></div>
     </div>
 
     <div id="drop-veil" hidden>
@@ -56,6 +57,7 @@
           </div>
         </div>
         <button id="btn-open-tab" type="button">Open in tab</button>
+        <button id="btn-settings" type="button">Settings</button>
         <button id="btn-fullscreen" type="button" class="accent">Fullscreen</button>
       </nav>
     </header>
@@ -114,6 +116,70 @@
 
     <input type="file" id="file-input" multiple hidden />
     <input type="file" id="zip-input" accept=".zip,application/zip" hidden />
+
+    <dialog id="settings-dialog" aria-labelledby="settings-title">
+      <div class="dlg-head">
+        <h2 id="settings-title">Settings</h2>
+        <button id="btn-settings-close" type="button" title="Close settings">✕</button>
+      </div>
+      <div class="dlg-body">
+        <section aria-label="Accent color">
+          <h3>Accent color</h3>
+          <div id="accent-grid" role="radiogroup" aria-label="Accent presets"></div>
+          <label class="set-row" for="accent-custom">
+            Custom
+            <input type="color" id="accent-custom" />
+            <code id="accent-hex"></code>
+          </label>
+          <label class="set-row" for="set-gradients">
+            <input type="checkbox" id="set-gradients" />
+            Gradient accents <em class="beta">beta</em>
+          </label>
+        </section>
+        <section aria-label="Editor">
+          <h3>Editor</h3>
+          <label class="set-row" for="set-fontsize">
+            Font size
+            <input type="range" id="set-fontsize" min="11" max="18" step="1" />
+            <span class="val" id="fontsize-val"></span>
+          </label>
+          <label class="set-row" for="set-tabsize">
+            Tab width
+            <select id="set-tabsize">
+              <option value="2">2 spaces</option>
+              <option value="4">4 spaces</option>
+            </select>
+          </label>
+          <label class="set-row" for="set-wrap">
+            <input type="checkbox" id="set-wrap" />
+            Word wrap
+          </label>
+          <label class="set-row" for="set-linenumbers">
+            <input type="checkbox" id="set-linenumbers" />
+            Line numbers
+          </label>
+        </section>
+        <section aria-label="Preview and console">
+          <h3>Preview &amp; console</h3>
+          <label class="set-row" for="set-autopreview">
+            <input type="checkbox" id="set-autopreview" />
+            Live preview while typing
+          </label>
+          <label class="set-row" for="set-consoleopen">
+            <input type="checkbox" id="set-consoleopen" />
+            Open console on error
+          </label>
+        </section>
+        <section aria-label="Data">
+          <h3>Data</h3>
+          <p class="set-note" id="settings-usage"></p>
+          <div class="set-actions">
+            <button id="btn-settings-reset" type="button">Reset settings</button>
+            <button id="btn-data-erase" type="button">Erase all local data</button>
+          </div>
+        </section>
+      </div>
+    </dialog>
 
     <script type="module" src="/src/main.ts"></script>
   </body>

@@ -1,6 +1,6 @@
 import { acceptCompletion, autocompletion, closeBrackets, closeBracketsKeymap, completionKeymap } from '@codemirror/autocomplete';
 import { defaultKeymap, history, historyKeymap, indentLess, indentMore } from '@codemirror/commands';
-import { syntaxHighlighting, HighlightStyle, bracketMatching, indentOnInput } from '@codemirror/language';
+import { syntaxHighlighting, HighlightStyle, bracketMatching, indentOnInput, indentUnit } from '@codemirror/language';
 import { css } from '@codemirror/lang-css';
 import { html } from '@codemirror/lang-html';
 import { javascript, javascriptLanguage, scopeCompletionSource } from '@codemirror/lang-javascript';
@@ -11,16 +11,20 @@ import { Compartment, EditorState } from '@codemirror/state';
 import { EditorView, Decoration, keymap, lineNumbers, highlightActiveLine } from '@codemirror/view';
 import { tags } from '@lezer/highlight';
 import { parse } from 'acorn';
+import { ACCENT_DEFAULT, parseAccent, type AppSettings, type Rgb } from './settings.ts';
 
 export interface EditorHandle {
   openFile(path: string, content: string): void;
   currentPath(): string | null;
   /** Box + scroll to a 1-based line (used when jumping from a console error). */
   highlightLine(line: number): void;
+  /** Re-apply accent, font size, tabs, wrap and gutters without losing content. */
+  updateSettings(s: AppSettings): void;
   destroy(): void;
 }
 
 interface EditorOptions {
+  settings: AppSettings;
   onChange: (path: string, content: string) => void;
   /** Current JS syntax errors for the open file (empty when clean). */
   onDiagnostics: (path: string, diagnostics: Diagnostic[]) => void;
@@ -28,34 +32,57 @@ interface EditorOptions {
 
 const MAX_LINT_BYTES = 120_000;
 
-const voltTheme = EditorView.theme(
-  {
-    '&': { backgroundColor: '#0d0d0d', color: '#f2f2f2' },
-    '.cm-content': { caretColor: 'rgb(200,255,0)' },
-    '.cm-cursor': { borderLeftColor: 'rgb(200,255,0)' },
-    '.cm-gutters': { backgroundColor: '#0d0d0d', color: '#6b6b6b', borderRight: '1px solid #1b1b1b' },
-    '.cm-activeLine': { backgroundColor: 'rgba(200,255,0,0.06)' },
-    '.cm-activeLineGutter': { backgroundColor: 'rgba(200,255,0,0.08)', color: 'rgb(200,255,0)' },
-    '&.cm-focused': { outline: '1px solid rgba(200,255,0,0.55)' },
-    '.cm-selectionBackground': { backgroundColor: 'rgba(200,255,0,0.25)' },
-    '.cm-tooltip': { backgroundColor: '#111', border: '1px solid #333', color: '#f2f2f2' },
-    '.cm-lintRange-error': { backgroundImage: 'none', borderBottom: '2px solid #ff5d5d' },
-    '.cm-searchMatch': { backgroundColor: 'rgba(200,255,0,0.3)' },
-  },
-  { dark: true },
-);
+function accentOf(s: AppSettings): Rgb {
+  return parseAccent(s.accent) ?? parseAccent(ACCENT_DEFAULT) ?? [200, 255, 0];
+}
 
-const voltHighlight = HighlightStyle.define([
-  { tag: tags.comment, color: '#6f6f6f', fontStyle: 'italic' },
-  { tag: tags.keyword, color: 'rgb(200,255,0)', fontWeight: 'bold' },
-  { tag: [tags.string, tags.regexp], color: '#e8e8e8' },
-  { tag: [tags.number, tags.bool, tags.atom], color: 'rgb(200,255,0)' },
-  { tag: [tags.function(tags.variableName), tags.function(tags.propertyName)], color: '#ffffff' },
-  { tag: [tags.variableName, tags.propertyName, tags.attributeName], color: '#d7d7d7' },
-  { tag: [tags.tagName, tags.typeName, tags.className], color: '#ffffff', fontWeight: 'bold' },
-  { tag: tags.operator, color: 'rgb(200,255,0)' },
-  { tag: tags.meta, color: '#9a9a9a' },
-]);
+/** Editor chrome rebuilt from the accent + font size (single source of truth). */
+function themeFor(accent: Rgb, fontSize: number) {
+  const [r, g, b] = accent;
+  const rgb = `rgb(${r},${g},${b})`;
+  const rgba = (a: number) => `rgba(${r},${g},${b},${a})`;
+  return [
+    EditorView.theme(
+      {
+        '&': { backgroundColor: '#0d0d0d', color: '#f2f2f2', fontSize: `${fontSize}px` },
+        '.cm-content': { caretColor: rgb },
+        '.cm-cursor': { borderLeftColor: rgb },
+        '.cm-gutters': { backgroundColor: '#0d0d0d', color: '#6b6b6b', borderRight: '1px solid #1b1b1b' },
+        '.cm-activeLine': { backgroundColor: rgba(0.06) },
+        '.cm-activeLineGutter': { backgroundColor: rgba(0.08), color: rgb },
+        '&.cm-focused': { outline: `1px solid ${rgba(0.55)}` },
+        '.cm-selectionBackground': { backgroundColor: rgba(0.25) },
+        '.cm-tooltip': { backgroundColor: '#111', border: '1px solid #333', color: '#f2f2f2' },
+        '.cm-lintRange-error': { backgroundImage: 'none', borderBottom: '2px solid #ff5d5d' },
+        '.cm-searchMatch': { backgroundColor: rgba(0.3) },
+      },
+      { dark: true },
+    ),
+    syntaxHighlighting(
+      HighlightStyle.define([
+        { tag: tags.comment, color: '#6f6f6f', fontStyle: 'italic' },
+        { tag: tags.keyword, color: rgb, fontWeight: 'bold' },
+        { tag: [tags.string, tags.regexp], color: '#e8e8e8' },
+        { tag: [tags.number, tags.bool, tags.atom], color: rgb },
+        { tag: [tags.function(tags.variableName), tags.function(tags.propertyName)], color: '#ffffff' },
+        { tag: [tags.variableName, tags.propertyName, tags.attributeName], color: '#d7d7d7' },
+        { tag: [tags.tagName, tags.typeName, tags.className], color: '#ffffff', fontWeight: 'bold' },
+        { tag: tags.operator, color: rgb },
+        { tag: tags.meta, color: '#9a9a9a' },
+      ]),
+    ),
+  ];
+}
+
+/** Gutters, wrap, indent width and theme — everything the settings own. */
+function settingsExtensions(s: AppSettings) {
+  return [
+    ...themeFor(accentOf(s), s.fontSize),
+    s.lineNumbers ? lineNumbers() : [],
+    s.wrap ? EditorView.lineWrapping : [],
+    indentUnit.of(' '.repeat(s.tabSize)),
+  ];
+}
 
 function isJsPath(path: string): boolean {
   const ext = path.split('.').pop()?.toLowerCase() ?? '';
@@ -123,6 +150,7 @@ export function createEditor(el: HTMLElement, opts: EditorOptions): EditorHandle
   const language = new Compartment();
   const lint = new Compartment();
   const mark = new Compartment();
+  const conf = new Compartment();
   let path: string | null = null;
   let lastDiagKey = '';
   let marked = false;
@@ -155,7 +183,6 @@ export function createEditor(el: HTMLElement, opts: EditorOptions): EditorHandle
     state: EditorState.create({
       doc: '',
       extensions: [
-        lineNumbers(),
         highlightActiveLine(),
         history(),
         indentOnInput(),
@@ -163,8 +190,7 @@ export function createEditor(el: HTMLElement, opts: EditorOptions): EditorHandle
         closeBrackets(),
         autocompletion({ activateOnTyping: true }),
         highlightSelectionMatches(),
-        syntaxHighlighting(voltHighlight),
-        voltTheme,
+        conf.of(settingsExtensions(opts.settings)),
         lintGutter(),
         language.of([]),
         lint.of([]),
@@ -223,6 +249,9 @@ export function createEditor(el: HTMLElement, opts: EditorOptions): EditorHandle
       } catch {
         // Line vanished under edits — nothing to box.
       }
+    },
+    updateSettings(s: AppSettings) {
+      view.dispatch({ effects: conf.reconfigure(settingsExtensions(s)) });
     },
     destroy() {
       path = null;

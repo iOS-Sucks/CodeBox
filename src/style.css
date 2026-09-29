@@ -11,6 +11,12 @@
   --dim: #6b6b6b;
   --volt: rgb(200, 255, 0);
   --volt-dim: rgba(200, 255, 0, 0.14);
+  --volt-select: rgba(200, 255, 0, 0.25);
+  --volt-line: rgba(200, 255, 0, 0.07);
+  --volt-gutter: rgba(200, 255, 0, 0.08);
+  --volt-focus: rgba(200, 255, 0, 0.55);
+  --volt-match: rgba(200, 255, 0, 0.3);
+  --volt-hover: rgba(200, 255, 0, 0.18);
   --err: #ff5d5d;
   --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --mono: ui-monospace, "Cascadia Mono", "JetBrains Mono", Consolas, monospace;
@@ -83,36 +89,69 @@ body {
   color: var(--mut);
 }
 
-.boot-box {
-  display: flex;
-  gap: 8px;
+.boot-logo {
+  display: grid;
+  grid-template-columns: repeat(2, 20px);
+  gap: 6px;
 }
 
-.boot-box span {
-  width: 18px;
-  height: 18px;
+.boot-logo span {
+  width: 20px;
+  height: 20px;
   background: var(--line);
-  animation: boot-pulse 900ms ease-in-out infinite;
+  animation: boot-pop 1000ms ease-in-out infinite;
 }
 
-.boot-box span:nth-child(2) {
+.boot-logo span:nth-child(1) {
+  animation-delay: 0ms;
+}
+
+.boot-logo span:nth-child(2) {
   animation-delay: 150ms;
   background: var(--volt);
 }
 
-.boot-box span:nth-child(3) {
+.boot-logo span:nth-child(3) {
   animation-delay: 300ms;
 }
 
-@keyframes boot-pulse {
+.boot-logo span:nth-child(4) {
+  animation-delay: 450ms;
+}
+
+@keyframes boot-pop {
   0%,
   100% {
-    transform: scale(1);
-    opacity: 0.6;
+    transform: scale(0.7);
+    opacity: 0.4;
   }
   50% {
-    transform: scale(1.25);
+    transform: scale(1.1);
     opacity: 1;
+  }
+}
+
+.boot-bar {
+  width: 180px;
+  height: 3px;
+  background: var(--line);
+  overflow: hidden;
+}
+
+.boot-bar span {
+  display: block;
+  height: 100%;
+  width: 40%;
+  background: var(--volt);
+  animation: boot-slide 1000ms linear infinite;
+}
+
+@keyframes boot-slide {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(350%);
   }
 }
 
@@ -510,56 +549,16 @@ select {
   flex-direction: column;
 }
 
+/* Editor chrome (caret, gutters, selection…) lives in themeFor() in
+   editor.ts so it follows the settings accent. Layout + static markers only. */
 #editor .cm-editor {
   flex: 1;
   height: 100%;
-  background: #0d0d0d;
-  color: var(--ink);
   font-family: var(--mono);
-  font-size: 13.5px;
 }
 
 #editor .cm-scroller {
   overflow: auto;
-}
-
-#editor .cm-gutters {
-  background: #0d0d0d;
-  color: var(--dim);
-  border-right: 1px solid var(--line-soft);
-}
-
-#editor .cm-activeLine {
-  background: rgba(200, 255, 0, 0.06);
-}
-
-#editor .cm-activeLineGutter {
-  background: rgba(200, 255, 0, 0.08);
-  color: var(--volt);
-}
-
-#editor .cm-content {
-  caret-color: var(--volt);
-}
-
-#editor .cm-cursor {
-  border-left-color: var(--volt);
-}
-
-#editor .cm-selectionBackground,
-#editor ::selection {
-  background: rgba(200, 255, 0, 0.25) !important;
-}
-
-#editor .cm-tooltip {
-  background: #111;
-  border: 1px solid var(--line);
-  color: var(--ink);
-}
-
-#editor .cm-lintRange-error {
-  background-image: none;
-  border-bottom: 2px solid var(--err);
 }
 
 #editor .cm-lintPoint-error::after {
@@ -833,8 +832,8 @@ select {
 /* ---------- jumped-to error line ---------- */
 
 #editor .cm-jump-line {
-  background: rgba(200, 255, 0, 0.09);
-  outline: 1px solid rgb(200, 255, 0);
+  background: var(--volt-line);
+  outline: 1px solid var(--volt);
 }
 
 /* ---------- clickable console locations ---------- */
@@ -878,10 +877,170 @@ select {
 
 #editor .cm-completionMatchedText {
   text-decoration: underline;
-  text-decoration-color: rgb(200, 255, 0);
+  text-decoration-color: var(--volt);
 }
 
 #editor .cm-completionSelected {
-  background: rgba(200, 255, 0, 0.18);
+  background: var(--volt-hover);
   color: #fff;
+}
+
+/* ---------- settings dialog ---------- */
+
+dialog {
+  background: var(--panel);
+  color: var(--ink);
+  border: 1px solid var(--volt);
+  padding: 0;
+  width: min(520px, 94vw);
+  max-height: 88vh;
+  animation: drop-in var(--speed) ease;
+}
+
+dialog::backdrop {
+  background: rgba(0, 0, 0, 0.72);
+}
+
+.dlg-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.dlg-head h2 {
+  margin: 0;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--mut);
+}
+
+.dlg-body {
+  padding: 4px 16px 16px;
+  overflow-y: auto;
+  max-height: calc(88vh - 54px);
+}
+
+.dlg-body section + section {
+  border-top: 1px solid var(--line-soft);
+  margin-top: 12px;
+}
+
+.dlg-body h3 {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin: 14px 0 6px;
+}
+
+.set-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 0;
+  cursor: pointer;
+}
+
+.set-row input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--volt);
+  flex: none;
+}
+
+.set-row input[type="range"] {
+  flex: 1;
+  accent-color: var(--volt);
+}
+
+.set-row select {
+  margin-left: auto;
+}
+
+.set-row .val {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--volt);
+  min-width: 3ch;
+  text-align: right;
+}
+
+.set-row input[type="color"] {
+  width: 44px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--line);
+  background: #000;
+  cursor: pointer;
+}
+
+#accent-hex {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--mut);
+}
+
+.beta {
+  font-style: normal;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  border: 1px solid var(--volt);
+  color: var(--volt);
+  padding: 1px 5px;
+}
+
+#accent-grid {
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
+  gap: 8px;
+  margin: 6px 0 10px;
+}
+
+.swatch {
+  aspect-ratio: 1;
+  border: 1px solid var(--line);
+  padding: 0;
+  cursor: pointer;
+  min-width: 0;
+}
+
+.swatch:hover {
+  transform: translateY(-2px);
+  border-color: #fff;
+}
+
+.swatch[aria-checked="true"] {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+.set-note {
+  color: var(--dim);
+  font-size: 12px;
+  margin: 6px 0 10px;
+}
+
+.set-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* ---------- gradient accents (beta) ---------- */
+
+body.grad .logo {
+  background: linear-gradient(135deg, var(--volt), color-mix(in srgb, var(--volt) 45%, #fff));
+}
+
+body.grad button.accent {
+  background: linear-gradient(135deg, var(--volt), color-mix(in srgb, var(--volt) 55%, #fff));
+}
+
+body.grad .boot-logo span:nth-child(2),
+body.grad .boot-bar span {
+  background: linear-gradient(135deg, var(--volt), color-mix(in srgb, var(--volt) 45%, #fff));
 }
