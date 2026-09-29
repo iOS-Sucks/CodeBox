@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0a0a0a" />
+    <meta
+      name="description"
+      content="CodeBox — edit HTML, CSS and JS in your browser with live preview. No account, no cookies, projects stay on your device."
+    />
+    <title>CodeBox — live HTML/CSS/JS editor</title>
+  </head>
+  <body>
+    <div id="boot" role="status" aria-label="Loading CodeBox">
+      <div class="boot-box" aria-hidden="true"><span></span><span></span><span></span></div>
+      <p>CODEBOX</p>
+    </div>
+
+    <div id="drop-veil" hidden>
+      <div class="drop-card">
+        <strong>Drop to add</strong>
+        <p>HTML, CSS, JS, images — or a <code>.zip</code> of a site</p>
+      </div>
+    </div>
+
+    <header id="topbar">
+      <div class="brand">
+        <span class="logo" aria-hidden="true"></span>
+        <h1>CodeBox</h1>
+      </div>
+      <div class="project-bar">
+        <label class="visually-hidden" for="project-select">Active project</label>
+        <select id="project-select"></select>
+        <button id="btn-project-add" type="button" title="New project">+ Project</button>
+        <button id="btn-project-rename" type="button" title="Rename project">Rename</button>
+        <button id="btn-project-delete" type="button" title="Delete project">Delete</button>
+      </div>
+      <nav class="actions" aria-label="Project actions">
+        <button id="btn-import-files" type="button">Import files</button>
+        <button id="btn-import-zip" type="button">Import .zip</button>
+        <button id="btn-export-zip" type="button">Export .zip</button>
+        <button id="btn-open-tab" type="button">Open in tab</button>
+        <button id="btn-fullscreen" type="button" class="accent">Fullscreen</button>
+      </nav>
+    </header>
+
+    <main id="layout">
+      <aside id="sidebar" aria-label="Project files">
+        <div class="pane-head">
+          <h2>Files</h2>
+          <div class="pane-tools">
+            <button id="btn-new-file" type="button" title="New file (use a/b.js for folders)">+ File</button>
+            <button id="btn-new-folder" type="button" title="New folder">+ Folder</button>
+          </div>
+        </div>
+        <div id="tree" role="tree" aria-label="Project files"></div>
+        <p class="side-note" id="storage-note"></p>
+      </aside>
+
+      <section id="edit-pane" aria-label="Code editor">
+        <div class="pane-head">
+          <h2 id="active-path">—</h2>
+          <span id="save-dot" class="save-dot" title="All changes save automatically">saved</span>
+        </div>
+        <div id="editor"></div>
+        <div id="doc-errors" role="alert" hidden></div>
+      </section>
+
+      <section id="stage-pane" aria-label="Live preview">
+        <div class="pane-head">
+          <h2>Preview</h2>
+          <span id="entry-label" class="entry-label"></span>
+        </div>
+        <div id="stage-wrap">
+          <iframe
+            id="preview"
+            title="Live website preview"
+            sandbox="allow-scripts"
+            allow="fullscreen"
+          ></iframe>
+        </div>
+        <details id="console-box">
+          <summary>Console <span id="console-count" class="count"></span></summary>
+          <div class="console-row">
+            <ol id="console-list"></ol>
+            <button id="btn-console-clear" type="button">Clear</button>
+          </div>
+        </details>
+      </section>
+    </main>
+
+    <footer id="foot">
+      <p>
+        No cookies · No account · Projects stay in this browser (localStorage) ·
+        <span id="save-state">Saved</span>
+      </p>
+    </footer>
+
+    <input type="file" id="file-input" multiple hidden />
+    <input type="file" id="zip-input" accept=".zip,application/zip" hidden />
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
