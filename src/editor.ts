@@ -3,7 +3,7 @@ import { defaultKeymap, history, historyKeymap, indentLess, indentMore } from '@
 import { syntaxHighlighting, HighlightStyle, bracketMatching, indentOnInput } from '@codemirror/language';
 import { css } from '@codemirror/lang-css';
 import { html } from '@codemirror/lang-html';
-import { javascript } from '@codemirror/lang-javascript';
+import { javascript, javascriptLanguage, scopeCompletionSource } from '@codemirror/lang-javascript';
 import { json } from '@codemirror/lang-json';
 import { linter, lintGutter, type Diagnostic } from '@codemirror/lint';
 import { highlightSelectionMatches, searchKeymap } from '@codemirror/search';
@@ -66,7 +66,14 @@ function languageFor(path: string) {
   const ext = path.split('.').pop()?.toLowerCase() ?? '';
   if (ext === 'html' || ext === 'htm') return html({ autoCloseTags: true });
   if (ext === 'css') return css();
-  if (ext === 'js' || ext === 'mjs' || ext === 'cjs') return javascript();
+  if (ext === 'js' || ext === 'mjs' || ext === 'cjs') {
+    return [
+      javascript(),
+      // Browser + JS globals (document, console, Math, fetch, …) with real
+      // member completion reflected from the runtime (document. → getElementById…).
+      javascriptLanguage.data.of({ autocomplete: scopeCompletionSource(globalThis) }),
+    ];
+  }
   if (ext === 'json') return json();
   return [];
 }

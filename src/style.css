@@ -854,3 +854,34 @@ select {
   border-color: var(--volt);
   background: var(--volt-dim);
 }
+
+/* ---------- autocomplete popup ---------- */
+
+#editor .cm-tooltip-autocomplete {
+  background: #111;
+  border: 1px solid #333;
+}
+
+#editor .cm-tooltip-autocomplete > ul {
+  font-family: var(--mono);
+  max-height: 240px;
+}
+
+#editor .cm-completionIcon {
+  color: var(--volt);
+}
+
+#editor .cm-completionDetail {
+  color: var(--dim);
+  font-style: normal;
+}
+
+#editor .cm-completionMatchedText {
+  text-decoration: underline;
+  text-decoration-color: rgb(200, 255, 0);
+}
+
+#editor .cm-completionSelected {
+  background: rgba(200, 255, 0, 0.18);
+  color: #fff;
+}

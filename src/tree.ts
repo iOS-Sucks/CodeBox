@@ -128,6 +128,7 @@ export function renderTree(el: HTMLElement, project: Project, activePath: string
         li.appendChild(sub);
       } else {
         li.setAttribute('role', 'treeitem');
+        li.setAttribute('aria-selected', node.filePath === activePath ? 'true' : 'false');
         const row = document.createElement('button');
         row.type = 'button';
         row.className = `tree-row${node.filePath === activePath ? ' active' : ''}`;

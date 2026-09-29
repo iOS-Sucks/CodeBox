@@ -217,6 +217,7 @@ function main(): void {
         saveNow();
         openActiveFile();
         rebuildPreview();
+        renderTreeEl();
       },
       onDelete: (path) => {
         p.files = p.files.filter((f) => f.path !== path);
