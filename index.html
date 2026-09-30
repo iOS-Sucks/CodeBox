@@ -77,6 +77,10 @@
             <button id="btn-new-folder" type="button" title="New folder">+ Folder</button>
           </div>
         </div>
+        <div class="tree-filter">
+          <label class="visually-hidden" for="tree-filter-input">Filter files</label>
+          <input id="tree-filter-input" type="search" placeholder="Filter files…" autocomplete="off" />
+        </div>
         <div id="tree" role="tree" aria-label="Project files"></div>
         <p class="side-note" id="storage-note"></p>
       </aside>
@@ -84,7 +88,10 @@
       <section id="edit-pane" aria-label="Code editor">
         <div class="pane-head">
           <h2 id="active-path">—</h2>
-          <span id="save-dot" class="save-dot" title="All changes save automatically">saved</span>
+          <div class="pane-tools">
+            <span id="cursor-pos" class="cursor-pos" title="Cursor position"></span>
+            <span id="save-dot" class="save-dot" title="All changes save automatically">saved</span>
+          </div>
         </div>
         <div id="editor"></div>
         <div id="doc-errors" role="alert" hidden></div>
@@ -128,8 +135,14 @@
         <h2 id="settings-title">Settings</h2>
         <button id="btn-settings-close" type="button" title="Close settings">✕</button>
       </div>
+      <div class="dlg-tabs" role="tablist" aria-label="Settings sections">
+        <button type="button" role="tab" data-stab="appearance" aria-selected="true">Appearance</button>
+        <button type="button" role="tab" data-stab="editor" aria-selected="false">Editor</button>
+        <button type="button" role="tab" data-stab="preview" aria-selected="false">Preview</button>
+        <button type="button" role="tab" data-stab="data" aria-selected="false">Data</button>
+      </div>
       <div class="dlg-body">
-        <section aria-label="Accent color">
+        <section role="tabpanel" data-spanel="appearance" aria-label="Accent color">
           <h3>Accent color</h3>
           <div id="accent-grid" role="radiogroup" aria-label="Accent presets"></div>
           <label class="set-row" for="accent-custom">
@@ -153,7 +166,7 @@
             <span class="val" id="gradient-angle-val"></span>
           </label>
         </section>
-        <section aria-label="Editor">
+        <section role="tabpanel" data-spanel="editor" aria-label="Editor" hidden>
           <h3>Editor</h3>
           <label class="set-row" for="set-fontsize">
             Font size
@@ -175,8 +188,15 @@
             <input type="checkbox" id="set-linenumbers" />
             Line numbers
           </label>
+          <h3>Shortcuts</h3>
+          <ul class="keys">
+            <li><kbd>Ctrl/⌘ S</kbd> save + rebuild preview</li>
+            <li><kbd>Ctrl/⌘ F</kbd> find &amp; replace in file</li>
+            <li><kbd>Tab</kbd> accept suggestion, otherwise indent</li>
+            <li><kbd>Esc</kbd> close menus and dialogs</li>
+          </ul>
         </section>
-        <section aria-label="Preview and console">
+        <section role="tabpanel" data-spanel="preview" aria-label="Preview and console" hidden>
           <h3>Preview &amp; console</h3>
           <label class="set-row" for="set-autopreview">
             <input type="checkbox" id="set-autopreview" />
@@ -187,7 +207,7 @@
             Open console on error
           </label>
         </section>
-        <section aria-label="Data">
+        <section role="tabpanel" data-spanel="data" aria-label="Data" hidden>
           <h3>Data</h3>
           <p class="set-note" id="settings-usage"></p>
           <div class="set-actions">

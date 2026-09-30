@@ -72,6 +72,8 @@ function main(): void {
 
   const projectSelect = el<HTMLSelectElement>('project-select');
   const treeEl = el('tree');
+  const filterInput = el<HTMLInputElement>('tree-filter-input');
+  const cursorPos = el('cursor-pos');
   const editorHost = el('editor');
   const activePathEl = el('active-path');
   const docErrors = el('doc-errors');
@@ -115,11 +117,15 @@ function main(): void {
   let lastHtml = '';
   let lastLineMap: LineSegment[] = [];
   let entries: ConsoleEntry[] = [];
+  let fileFilter = '';
 
   const project = (): Project | null => getProject(state, state.activeProjectId);
 
   const editor: EditorHandle = createEditor(editorHost, {
-    settings,    onChange: (path, content) => {
+    settings,
+    onCursor: (line, col, selected) => {
+      cursorPos.textContent = selected > 0 ? `Ln ${line}, Col ${col} · ${selected} selected` : `Ln ${line}, Col ${col}`;
+    },    onChange: (path, content) => {
       const p = project();
       const file = p ? getFile(p, path) : null;
       if (!p || !file || file.content === content) return;
@@ -288,7 +294,7 @@ function main(): void {
         renderTreeEl();
       },
       onCreate: (raw) => createPath(p, raw, false),
-    });
+    }, fileFilter);
   }
 
   function isBinary(file: CodeFile): boolean {
@@ -600,6 +606,11 @@ function main(): void {
     if (p) showCreateRow(treeEl, 'folder/', { onSelect: () => {}, onDelete: () => {}, onRename: () => {}, onCreate: (v) => createPath(p, v, true) });
   });
 
+  filterInput.addEventListener('input', () => {
+    fileFilter = filterInput.value;
+    renderTreeEl();
+  });
+
   /* ---------- dropdown menus ---------- */
 
   const menuRoots = [...document.querySelectorAll<HTMLElement>('[data-menu]')];
@@ -844,6 +855,18 @@ function main(): void {
   dialog.addEventListener('click', (e) => {
     if (e.target === dialog) dialog.close();
   });
+
+  for (const node of dialog.querySelectorAll('[data-stab]')) {
+    const tab = node as HTMLButtonElement;
+    tab.addEventListener('click', () => {
+      for (const other of dialog.querySelectorAll('[data-stab]')) {
+        other.setAttribute('aria-selected', other === tab ? 'true' : 'false');
+      }
+      for (const panel of dialog.querySelectorAll('[data-spanel]')) {
+        (panel as HTMLElement).hidden = (panel as HTMLElement).dataset.spanel !== tab.dataset.stab;
+      }
+    });
+  }
 
   /* ---------- drag & drop ---------- */
 

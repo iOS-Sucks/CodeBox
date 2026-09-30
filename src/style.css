@@ -1036,6 +1036,115 @@ dialog::backdrop {
   flex-wrap: wrap;
 }
 
+.dlg-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--line);
+  background: var(--panel-2);
+}
+
+.dlg-tabs [role="tab"] {
+  flex: 1;
+  border: none;
+  border-right: 1px solid var(--line-soft);
+  background: none;
+  color: var(--mut);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 12px;
+  padding: 10px 0;
+}
+
+.dlg-tabs [role="tab"]:last-child {
+  border-right: none;
+}
+
+.dlg-tabs [role="tab"][aria-selected="true"] {
+  background: var(--volt-dim);
+  color: #fff;
+  box-shadow: inset 0 -2px 0 var(--volt);
+}
+
+.keys {
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--mut);
+}
+
+.keys kbd {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  background: #000;
+  padding: 1px 7px;
+  margin-right: 8px;
+  white-space: nowrap;
+}
+
+.tree-filter {
+  padding: 6px;
+  border-bottom: 1px solid var(--line);
+}
+
+.tree-filter input {
+  width: 100%;
+  background: #000;
+  border: 1px solid var(--line);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  padding: 6px 9px;
+}
+
+.tree-filter input:focus {
+  border-color: var(--volt);
+  outline: none;
+}
+
+.tree-filter input::placeholder {
+  color: var(--dim);
+}
+
+.cursor-pos {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--dim);
+  white-space: nowrap;
+}
+
+/* ---------- find & replace panel ---------- */
+
+#editor .cm-panel.cm-search {
+  background: #111;
+  border-bottom: 1px solid var(--line);
+  padding: 6px 8px;
+  font-family: var(--sans);
+}
+
+#editor .cm-panel.cm-search input[type="text"] {
+  background: #000;
+  border: 1px solid var(--line);
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 13px;
+  padding: 4px 7px;
+}
+
+#editor .cm-panel.cm-search input[type="text"]:focus {
+  border-color: var(--volt);
+  outline: none;
+}
+
+#editor .cm-panel.cm-search label {
+  color: var(--mut);
+  font-size: 12px;
+}
+
 /* ---------- gradient accents (beta) ---------- */
 
 body.grad .logo {

@@ -15,7 +15,9 @@ via GitHub Pages.
 - **Highlighted editor** — CodeMirror 6 with HTML/CSS/JS/JSON grammars, volt-on-black
   theme, auto-closing tags and brackets, and scope-aware completions for tags,
   CSS properties, JS globals and your own variables. `Tab` accepts a suggestion,
-  `Shift-Tab` unindents.
+  `Shift-Tab` unindents, `Ctrl/⌘ F` finds and replaces, and the header tracks
+  cursor position.
+- **File filter** — narrow big imported projects down as you type.
 - **Error highlighting** — JS syntax errors get gutter markers plus a message bar;
   runtime errors and `console.*` output from the preview land in the Console panel,
   mapped back to the real file and line — click one to jump straight to it.

@@ -6,7 +6,7 @@ import { html } from '@codemirror/lang-html';
 import { javascript, javascriptLanguage, scopeCompletionSource } from '@codemirror/lang-javascript';
 import { json } from '@codemirror/lang-json';
 import { linter, lintGutter, type Diagnostic } from '@codemirror/lint';
-import { highlightSelectionMatches, searchKeymap } from '@codemirror/search';
+import { highlightSelectionMatches, search, searchKeymap } from '@codemirror/search';
 import { Compartment, EditorState } from '@codemirror/state';
 import { EditorView, Decoration, keymap, lineNumbers, highlightActiveLine } from '@codemirror/view';
 import { tags } from '@lezer/highlight';
@@ -28,6 +28,8 @@ interface EditorOptions {
   onChange: (path: string, content: string) => void;
   /** Current JS syntax errors for the open file (empty when clean). */
   onDiagnostics: (path: string, diagnostics: Diagnostic[]) => void;
+  /** Cursor line (1-based), column (1-based) and selected character count. */
+  onCursor: (line: number, col: number, selected: number) => void;
 }
 
 const MAX_LINT_BYTES = 120_000;
@@ -192,6 +194,7 @@ export function createEditor(el: HTMLElement, opts: EditorOptions): EditorHandle
         highlightSelectionMatches(),
         conf.of(settingsExtensions(opts.settings)),
         lintGutter(),
+        search({ top: true }),
         language.of([]),
         lint.of([]),
         mark.of(EditorView.decorations.of(Decoration.none)),
@@ -206,6 +209,10 @@ export function createEditor(el: HTMLElement, opts: EditorOptions): EditorHandle
           ...completionKeymap,
         ]),
         EditorView.updateListener.of((update) => {
+          const head = update.state.selection.main.head;
+          const anchor = update.state.selection.main.anchor;
+          const line = update.state.doc.lineAt(head);
+          opts.onCursor(line.number, head - line.from + 1, Math.abs(head - anchor));
           if (update.docChanged && path) {
             clearMark();
             opts.onChange(path, update.state.doc.toString());

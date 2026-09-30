@@ -1,5 +1,5 @@
 import { isKeepFile, sortedFiles } from './store.ts';
-import type { Project } from './types.ts';
+import type { CodeFile, Project } from './types.ts';
 
 export interface TreeHandlers {
   onSelect: (path: string) => void;
@@ -16,7 +16,23 @@ interface Node {
   filePath: string | null;
 }
 
-function buildTree(project: Project): Node[] {
+/** Files matching the filter; a matching folder includes its whole subtree. */
+export function visibleFiles(project: Project, filter: string): CodeFile[] {
+  const all = sortedFiles(project);
+  const q = filter.trim().toLowerCase();
+  if (!q) return all;
+  const dirMatch = (path: string): boolean => {
+    let dir = path.includes('/') ? path.slice(0, path.lastIndexOf('/')) : '';
+    while (dir !== '') {
+      if (dir.toLowerCase().includes(q)) return true;
+      dir = dir.includes('/') ? dir.slice(0, dir.lastIndexOf('/')) : '';
+    }
+    return false;
+  };
+  return all.filter((f) => f.path.toLowerCase().includes(q) || dirMatch(f.path));
+}
+
+function buildTree(files: CodeFile[]): Node[] {
   const root: Node[] = [];
   const dirs = new Map<string, Node>();
 
@@ -32,7 +48,7 @@ function buildTree(project: Project): Node[] {
     return node.children;
   };
 
-  for (const file of sortedFiles(project)) {
+  for (const file of files) {
     const slash = file.path.lastIndexOf('/');
     const parent = dirNode(slash === -1 ? '' : file.path.slice(0, slash));
     if (isKeepFile(file.path)) continue; // marker only materializes the folder
@@ -94,16 +110,25 @@ function inputRow(initial: string, onCommit: (value: string) => void): HTMLEleme
   return row;
 }
 
-export function renderTree(el: HTMLElement, project: Project, activePath: string | null, handlers: TreeHandlers): void {
+export function renderTree(
+  el: HTMLElement,
+  project: Project,
+  activePath: string | null,
+  handlers: TreeHandlers,
+  filter = '',
+): void {
   el.replaceChildren();
   const list = document.createElement('ul');
   list.setAttribute('role', 'group');
 
-  const nodes = buildTree(project);
+  const nodes = buildTree(visibleFiles(project, filter));
   if (nodes.length === 0) {
     const empty = document.createElement('p');
     empty.className = 'tree-empty';
-    empty.textContent = 'Empty project — create a file, drop files anywhere, or import a .zip.';
+    empty.textContent =
+      filter.trim() === ''
+        ? 'Empty project — create a file, drop files anywhere, or import a .zip.'
+        : `No files match “${filter.trim()}”.`;
     el.appendChild(empty);
     return;
   }
