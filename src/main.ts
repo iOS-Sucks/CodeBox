@@ -86,6 +86,29 @@ function main(): void {
   const consoleCount = el('console-count');
   const fileInput = el<HTMLInputElement>('file-input');
   const zipInput = el<HTMLInputElement>('zip-input');
+  const layout = el('layout');
+
+  type MobileView = 'files' | 'code' | 'preview';
+  const narrowView = window.matchMedia('(max-width: 680px)');
+
+  function setView(view: MobileView): void {
+    layout.dataset.view = view;
+    for (const node of document.querySelectorAll('[data-view-btn]')) {
+      const btn = node as HTMLButtonElement;
+      if (btn.dataset.viewBtn === view) btn.setAttribute('aria-current', 'true');
+      else btn.removeAttribute('aria-current');
+    }
+  }
+
+  /** On phones, jump back to the code pane when it becomes relevant. */
+  function autoCodeView(): void {
+    if (narrowView.matches) setView('code');
+  }
+
+  for (const node of document.querySelectorAll('[data-view-btn]')) {
+    const btn = node as HTMLButtonElement;
+    btn.addEventListener('click', () => setView((btn.dataset.viewBtn ?? 'code') as MobileView));
+  }
 
   let saveTimer = 0;
   let previewTimer = 0;
@@ -202,6 +225,7 @@ function main(): void {
     rebuildPreview();
     renderTreeEl();
     if (editor.currentPath() === file.path) editor.highlightLine(target.line);
+    autoCodeView();
   }
 
   /* ---------- rendering ---------- */
@@ -231,6 +255,7 @@ function main(): void {
         openActiveFile();
         rebuildPreview();
         renderTreeEl();
+        autoCodeView();
       },
       onDelete: (path) => {
         p.files = p.files.filter((f) => f.path !== path);

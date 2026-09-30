@@ -62,7 +62,13 @@
       </nav>
     </header>
 
-    <main id="layout">
+    <nav id="viewtabs" aria-label="Switch view">
+      <button type="button" data-view-btn="files">Files</button>
+      <button type="button" data-view-btn="code" aria-current="true">Code</button>
+      <button type="button" data-view-btn="preview">Preview</button>
+    </nav>
+
+    <main id="layout" data-view="code">
       <aside id="sidebar" aria-label="Project files">
         <div class="pane-head">
           <h2>Files</h2>

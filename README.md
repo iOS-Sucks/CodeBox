@@ -24,6 +24,9 @@ via GitHub Pages.
 - **Fullscreen + new tab** — present a site fullscreen or pop it out into its own tab.
 - **Squary B/W design** — sharp corners, black & white, `rgb(200, 255, 0)` accent,
   subtle motion (disabled under `prefers-reduced-motion`).
+- **Mobile ready** — tabbed Files/Code/Preview views on phones (tapping a file or
+  an error jumps straight to Code), touch-sized controls, safe-area insets,
+  dynamic viewport height, and no iOS focus-zoom in the editor.
 - **Settings window** — restyle the accent with 9 presets or a custom color
   picker, design the beta gradient in a mini gradient editor (end color, angle,
   live preview), tune the editor (font size, tab width,

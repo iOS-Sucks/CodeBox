@@ -1,6 +1,7 @@
 /* CodeBox theme: squary, black & white, volt accent rgb(200, 255, 0). */
 
 :root {
+  color-scheme: dark;
   --bg: #0a0a0a;
   --panel: #101010;
   --panel-2: #141414;
@@ -46,6 +47,7 @@ body {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  min-height: 100dvh;
   overflow-x: hidden;
 }
 
@@ -216,6 +218,7 @@ body {
   gap: 16px;
   flex-wrap: wrap;
   padding: 10px 16px;
+  padding-top: max(10px, env(safe-area-inset-top));
   border-bottom: 1px solid var(--line);
   background: var(--panel);
 }
@@ -262,6 +265,7 @@ select {
   border: 1px solid var(--line);
   padding: 6px 12px;
   cursor: pointer;
+  touch-action: manipulation;
   transition:
     background var(--speed) ease,
     border-color var(--speed) ease,
@@ -698,6 +702,7 @@ select {
   border-top: 1px solid var(--line);
   background: var(--panel);
   padding: 8px 16px;
+  padding-bottom: max(8px, env(safe-area-inset-bottom));
 }
 
 #foot p {
@@ -1044,6 +1049,106 @@ body.grad button.accent {
 body.grad .boot-logo span:nth-child(2),
 body.grad .boot-bar span {
   background: var(--accent-grad);
+}
+
+/* ---------- mobile view tabs ---------- */
+
+#viewtabs {
+  display: none;
+}
+
+@media (max-width: 680px) {
+  #viewtabs {
+    display: flex;
+    border-bottom: 1px solid var(--line);
+    background: var(--panel);
+  }
+
+  #viewtabs button {
+    flex: 1;
+    border: none;
+    border-right: 1px solid var(--line-soft);
+    background: none;
+    color: var(--mut);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-size: 12px;
+    padding: 11px 0;
+  }
+
+  #viewtabs button:last-child {
+    border-right: none;
+  }
+
+  #viewtabs button[aria-current="true"] {
+    background: var(--volt-dim);
+    color: #fff;
+    box-shadow: inset 0 -2px 0 var(--volt);
+  }
+
+  /* One pane at a time fills the viewport. */
+  #layout {
+    display: flex;
+    flex-direction: column;
+  }
+
+  #sidebar,
+  #edit-pane,
+  #stage-pane {
+    border: none;
+    flex: 1;
+    min-height: 0;
+  }
+
+  #sidebar {
+    max-height: none;
+  }
+
+  #layout[data-view="files"] #edit-pane,
+  #layout[data-view="files"] #stage-pane,
+  #layout[data-view="code"] #sidebar,
+  #layout[data-view="code"] #stage-pane,
+  #layout[data-view="preview"] #sidebar,
+  #layout[data-view="preview"] #edit-pane {
+    display: none;
+  }
+
+  /* iOS zooms on focus below 16px — keep code readable without jump-zoom. */
+  #editor .cm-editor {
+    font-size: 16px;
+  }
+}
+
+/* ---------- touch targets ---------- */
+
+@media (pointer: coarse) {
+  button,
+  select {
+    min-height: 40px;
+  }
+
+  .swatch {
+    min-height: 0;
+  }
+
+  .tree-row {
+    padding-top: 9px;
+    padding-bottom: 9px;
+  }
+
+  .pane-tools button,
+  .pane-head button {
+    padding: 6px 12px;
+    font-size: 13px;
+  }
+
+  #console-box summary {
+    padding: 12px;
+  }
+
+  .menu-panel [role="menuitem"] {
+    padding: 12px 10px;
+  }
 }
 
 #gradient-preview {
